@@ -2,7 +2,7 @@
 --[[
     ╔══════════════════════════════════════════════════════════════════════════════════╗
     ║                                 D I A A   U I                                    ║
-    ║                     Mobile Master Edition — Version 4.0.0                        ║
+    ║                     Ultimate Engine — Version 5.0.0                              ║
     ║                                                                                  ║
     ║                                   By Diaa                                        ║
     ╚══════════════════════════════════════════════════════════════════════════════════╝
@@ -14,6 +14,7 @@
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
 
@@ -59,17 +60,18 @@ if existing then
 end
 
 local DiaaUI = {
-    Version = "4.0.0",
+    Version = "5.0.0",
     Author = "Diaa",
     Flags = {} :: {[string]: any},
     Connections = {} :: {[string]: RBXScriptConnection},
+    ConfigFolder = "DiaaUI_Configs",
     Themes = {
         Obsidian = {
             Accent = Color3.fromRGB(56, 189, 248),
-            Background = Color3.fromRGB(10, 14, 22),
-            Surface = Color3.fromRGB(17, 24, 39),
-            SurfaceHover = Color3.fromRGB(24, 34, 56),
-            Border = Color3.fromRGB(37, 51, 78),
+            Background = Color3.fromRGB(9, 13, 20),
+            Surface = Color3.fromRGB(16, 23, 37),
+            SurfaceHover = Color3.fromRGB(24, 34, 54),
+            Border = Color3.fromRGB(36, 50, 76),
             Text = Color3.fromRGB(241, 245, 249),
             TextMuted = Color3.fromRGB(148, 163, 184),
         }
@@ -189,7 +191,6 @@ function DiaaUI:Notify(options: {Title: string, Content: string, Duration: numbe
     end)
 end
 
--- بناء النافذة المتجاوبة مع أبعاد شاشة الهاتف
 local Window = {}
 Window.__index = Window
 
@@ -206,7 +207,7 @@ function DiaaUI:CreateWindow(config: {Title: string, Subtitle: string?, Keybind:
 
     local cam = workspace.CurrentCamera
     local viewport = if cam then cam.ViewportSize else Vector2.new(800, 600)
-    local winW = math.clamp(viewport.X - 28, 310, 560)
+    local winW = math.clamp(viewport.X - 26, 310, 560)
     local winH = math.clamp(viewport.Y - 36, 250, 360)
 
     local Main = Instance.new("Frame")
@@ -267,6 +268,7 @@ function DiaaUI:CreateWindow(config: {Title: string, Subtitle: string?, Keybind:
     Subtitle.TextXAlignment = Enum.TextXAlignment.Left
     Subtitle.Parent = Header
 
+    -- شريط البحث الشامل لجميع التبويبات
     local SearchBox = Instance.new("TextBox")
     SearchBox.PlaceholderText = "🔍 Search..."
     SearchBox.Text = ""
@@ -275,8 +277,8 @@ function DiaaUI:CreateWindow(config: {Title: string, Subtitle: string?, Keybind:
     SearchBox.TextColor3 = theme.Text
     SearchBox.PlaceholderColor3 = theme.TextMuted
     SearchBox.BackgroundColor3 = theme.Background
-    SearchBox.Size = UDim2.new(0, 110, 0, 26)
-    SearchBox.Position = UDim2.new(1, -170, 0.5, -13)
+    SearchBox.Size = UDim2.new(0, 115, 0, 26)
+    SearchBox.Position = UDim2.new(1, -175, 0.5, -13)
     SearchBox.BorderSizePixel = 0
     SearchBox.Parent = Header
 
@@ -359,6 +361,7 @@ function DiaaUI:CreateWindow(config: {Title: string, Subtitle: string?, Keybind:
     ContentCorner.Parent = Content
     self.Content = Content
 
+    -- فلترة فورية للعناصر
     SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
         local q = SearchBox.Text:lower()
         for _, elem in ipairs(self.AllElements) do
@@ -437,7 +440,6 @@ function Window:Toggle()
     end
 end
 
--- التبويبات والقوائم القابلة للطي (Accordions)
 local Tab = {}
 Tab.__index = Tab
 
@@ -503,7 +505,6 @@ function Window:SelectTab(targetTab)
     SpringTween(targetTab.Btn, 0.2, {TextColor3 = self.Theme.Accent, BackgroundTransparency = 0.1})
 end
 
--- دالة القائمة القابلة للطي (Accordion) للهواتف
 function Tab:CreateAccordion(options: {Title: string, DefaultOpen: boolean?})
     local title = options.Title or "Accordion"
     local isOpen = if options.DefaultOpen ~= nil then options.DefaultOpen else false
@@ -572,9 +573,7 @@ function Tab:CreateAccordion(options: {Title: string, DefaultOpen: boolean?})
 
     HeaderBtn.MouseButton1Click:Connect(ToggleAccordion)
 
-    if isOpen then
-        AccFrame.AutomaticSize = Enum.AutomaticSize.Y
-    end
+    if isOpen then AccFrame.AutomaticSize = Enum.AutomaticSize.Y end
 
     local subTab = setmetatable({
         Scroll = InnerContainer,
@@ -644,7 +643,7 @@ function Tab:CreateButton(options: {Name: string, Callback: () -> ()})
     return Btn
 end
 
-function Tab:CreateToggle(options: {Name: string, CurrentValue: boolean?, Callback: (boolean) -> ()})
+function Tab:CreateToggle(options: {Name: string, CurrentValue: boolean?, Flag: string?, Callback: (boolean) -> ()})
     local name = options.Name or "Toggle"
     local state = options.CurrentValue or false
     local callback = options.Callback or function() end
@@ -701,6 +700,7 @@ function Tab:CreateToggle(options: {Name: string, CurrentValue: boolean?, Callba
 
     local function Set(val: boolean)
         state = val
+        if options.Flag then DiaaUI.Flags[options.Flag] = state end
         if state then
             SpringTween(Switch, 0.22, {BackgroundColor3 = theme.Accent})
             SpringTween(Knob, 0.22, {Position = UDim2.new(1, -17, 0.5, -7)})
@@ -712,11 +712,12 @@ function Tab:CreateToggle(options: {Name: string, CurrentValue: boolean?, Callba
     end
 
     ClickBtn.MouseButton1Click:Connect(function() Set(not state) end)
+    if options.Flag then DiaaUI.Flags[options.Flag] = state end
     table.insert(self.Window.AllElements, { Name = name, Frame = Frame })
     return { Set = Set }
 end
 
-function Tab:CreateSlider(options: {Name: string, Range: {number}, Increment: number?, CurrentValue: number?, Callback: (number) -> ()})
+function Tab:CreateSlider(options: {Name: string, Range: {number}, Increment: number?, CurrentValue: number?, Flag: string?, Callback: (number) -> ()})
     local name = options.Name or "Slider"
     local min = options.Range[1] or 0
     local max = options.Range[2] or 100
@@ -784,6 +785,7 @@ function Tab:CreateSlider(options: {Name: string, Range: {number}, Increment: nu
         current = stepped
         ValText.Text = tostring(current)
         Fill.Size = UDim2.new((current - min) / (max - min), 0, 1, 0)
+        if options.Flag then DiaaUI.Flags[options.Flag] = current end
         callback(current)
     end
 
@@ -805,6 +807,7 @@ function Tab:CreateSlider(options: {Name: string, Range: {number}, Increment: nu
         end
     end)
 
+    if options.Flag then DiaaUI.Flags[options.Flag] = current end
     table.insert(self.Window.AllElements, { Name = name, Frame = Frame })
     return { Set = function(val: number) Update(Track.AbsolutePosition.X + (Track.AbsoluteSize.X * ((val - min) / (max - min)))) end }
 end
@@ -851,8 +854,49 @@ function Tab:CreateParagraph(options: {Title: string, Content: string})
     return Frame
 end
 
+-- 5. نظام الحفظ والاسترجاع اليدوي لملفات الـ JSON
+function DiaaUI:SaveConfig(configName: string?)
+    local name = (configName or "Default") .. ".json"
+    local fullPath = DiaaUI.ConfigFolder .. "/" .. name
+    local success = pcall(function()
+        if makefolder and not isfolder(DiaaUI.ConfigFolder) then
+            makefolder(DiaaUI.ConfigFolder)
+        end
+        local encoded = HttpService:JSONEncode(DiaaUI.Flags)
+        if writefile then
+            writefile(fullPath, encoded)
+        end
+    end)
+    if success then
+        DiaaUI:Notify({ Title = "Config Saved", Content = "Saved flags to " .. name, Duration = 3 })
+    else
+        DiaaUI:Notify({ Title = "Save Warning", Content = "Stored in runtime session memory.", Duration = 3 })
+    end
+end
+
+function DiaaUI:LoadConfig(configName: string?)
+    local name = (configName or "Default") .. ".json"
+    local fullPath = DiaaUI.ConfigFolder .. "/" .. name
+    local loaded = false
+    pcall(function()
+        if isfile and isfile(fullPath) and readfile then
+            local data = readfile(fullPath)
+            local decoded = HttpService:JSONDecode(data)
+            for k, v in pairs(decoded) do
+                DiaaUI.Flags[k] = v
+            end
+            loaded = true
+        end
+    end)
+    if loaded then
+        DiaaUI:Notify({ Title = "Config Loaded", Content = "Loaded flags from " .. name, Duration = 3 })
+    else
+        DiaaUI:Notify({ Title = "Notice", Content = "No saved file found for " .. name, Duration = 3 })
+    end
+end
+
 -- ==============================================================================
--- 2. التشغيل التلقائي المباشر مع دعم الـ Accordion الكامل
+-- 6. التشغيل التلقائي المباشر مع واجهة متكاملة
 -- ==============================================================================
 local WindowInstance = DiaaUI:CreateWindow({
     Title = "Diaa Luxury Hub",
@@ -864,13 +908,12 @@ local WindowInstance = DiaaUI:CreateWindow({
 local MainTab = WindowInstance:CreateTab({ Name = "Main" })
 local MovementTab = WindowInstance:CreateTab({ Name = "Movement" })
 local VisualsTab = WindowInstance:CreateTab({ Name = "Visuals" })
-local WaypointsTab = WindowInstance:CreateTab({ Name = "Waypoints" })
+local ConfigTab = WindowInstance:CreateTab({ Name = "Settings" })
 
--- التبويب الرئيسي
 MainTab:CreateSection("Overview & Quick Actions")
 MainTab:CreateParagraph({
-    Title = "DiaaUI v4.0 Mobile Master",
-    Content = "تمت البرمجة بواسطة Diaa. اضغط على زر ⚡ العائم في أي وقت لإخفاء أو إظهار القائمة على هاتفك!"
+    Title = "DiaaUI v5.0 Ultimate Engine",
+    Content = "تمت البرمجة بواسطة Diaa. استخدم شريط البحث 🔍 لتصفية أي زر أو سلايدر عبر كل التبويبات!"
 })
 
 MainTab:CreateButton({
@@ -878,13 +921,12 @@ MainTab:CreateButton({
     Callback = function()
         DiaaUI:Notify({
             Title = "By Diaa",
-            Content = "DiaaUI v4.0 Mobile Master يعمل الآن بسلاسة فائقة!",
+            Content = "DiaaUI v5.0 يعمل الآن بسلاسة فائقة وبدون أي تقطيع!",
             Duration = 3
         })
     end
 })
 
--- قائمة قابلة للطي (Accordion) للحماية
 local ProtectionAccordion = MainTab:CreateAccordion({
     Title = "Security & Protection Settings",
     DefaultOpen = false
@@ -893,6 +935,7 @@ local ProtectionAccordion = MainTab:CreateAccordion({
 ProtectionAccordion:CreateToggle({
     Name = "Anti-AFK Protection",
     CurrentValue = true,
+    Flag = "AntiAFK",
     Callback = function(enabled)
         if enabled then
             local VirtualUser = game:GetService("VirtualUser")
@@ -906,7 +949,6 @@ ProtectionAccordion:CreateToggle({
     end
 })
 
--- تبويب الحركة مع Accordion للتنقل المتقدم
 MovementTab:CreateSection("Player Physics")
 
 MovementTab:CreateSlider({
@@ -914,6 +956,7 @@ MovementTab:CreateSlider({
     Range = {16, 250},
     Increment = 1,
     CurrentValue = 16,
+    Flag = "SpeedVal",
     Callback = function(val)
         local char = LocalPlayer.Character
         if char and char:FindFirstChildOfClass("Humanoid") then
@@ -927,6 +970,7 @@ MovementTab:CreateSlider({
     Range = {50, 350},
     Increment = 5,
     CurrentValue = 50,
+    Flag = "JumpVal",
     Callback = function(val)
         local char = LocalPlayer.Character
         if char and char:FindFirstChildOfClass("Humanoid") then
@@ -944,6 +988,7 @@ local AdvancedMovement = MovementTab:CreateAccordion({
 AdvancedMovement:CreateToggle({
     Name = "Infinite Jump",
     CurrentValue = false,
+    Flag = "InfJump",
     Callback = function(enabled)
         if enabled then
             DiaaUI.Connections["InfJump"] = UserInputService.JumpRequest:Connect(function()
@@ -961,6 +1006,7 @@ AdvancedMovement:CreateToggle({
 AdvancedMovement:CreateToggle({
     Name = "NoClip (Wall Pass)",
     CurrentValue = false,
+    Flag = "NoClip",
     Callback = function(enabled)
         if enabled then
             DiaaUI.Connections["NoClip"] = RunService.Stepped:Connect(function()
@@ -979,12 +1025,12 @@ AdvancedMovement:CreateToggle({
     end
 })
 
--- تبويب الرؤية (Visuals)
 VisualsTab:CreateSection("Lighting & ESP")
 
 VisualsTab:CreateToggle({
     Name = "FullBright (Night Vision)",
     CurrentValue = false,
+    Flag = "FullBright",
     Callback = function(enabled)
         if enabled then
             Lighting.Brightness = 2
@@ -1003,6 +1049,7 @@ VisualsTab:CreateToggle({
 VisualsTab:CreateToggle({
     Name = "Player ESP Highlights",
     CurrentValue = false,
+    Flag = "PlayerESP",
     Callback = function(enabled)
         if enabled then
             for _, plr in ipairs(Players:GetPlayers()) do
@@ -1024,37 +1071,28 @@ VisualsTab:CreateToggle({
     end
 })
 
--- تبويب الإحداثيات (Waypoints)
-WaypointsTab:CreateSection("Teleport & Waypoints")
+ConfigTab:CreateSection("Manual Config Snapshot Saving")
+ConfigTab:CreateParagraph({
+    Title = "Manual Snapshot Storage",
+    Content = "احفظ الإعدادات يدوياً أو استرجعها بنقرة زر واحدة."
+})
 
-local savedCFrame: CFrame? = nil
-WaypointsTab:CreateButton({
-    Name = "Save Current Location",
+ConfigTab:CreateButton({
+    Name = "💾 Save Configuration Now",
     Callback = function()
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            savedCFrame = char.HumanoidRootPart.CFrame
-            DiaaUI:Notify({ Title = "Saved", Content = "تم حفظ إحداثيات موقعك الحالي!" })
-        end
+        DiaaUI:SaveConfig("DiaaHub_Config")
     end
 })
 
-WaypointsTab:CreateButton({
-    Name = "Teleport to Saved Location",
+ConfigTab:CreateButton({
+    Name = "📂 Load Saved Configuration",
     Callback = function()
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChild("HumanoidRootPart") and savedCFrame then
-            char.HumanoidRootPart.CFrame = savedCFrame
-            DiaaUI:Notify({ Title = "Teleported", Content = "تم الانتقال إلى الموقع المحفوظ!" })
-        else
-            DiaaUI:Notify({ Title = "Error", Content = "يرجى حفظ موقع أولاً!" })
-        end
+        DiaaUI:LoadConfig("DiaaHub_Config")
     end
 })
 
--- إشعار التشغيل
 DiaaUI:Notify({
-    Title = "DiaaUI v4.0 Loaded",
+    Title = "DiaaUI v5.0 Loaded",
     Content = "Welcome! Running Diaa Luxury Hub By Diaa.",
     Duration = 4
 })
