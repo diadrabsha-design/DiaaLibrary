@@ -1,20 +1,20 @@
---!strict
 --[[
     ╔══════════════════════════════════════════════════════════════════════════════════╗
     ║                                 D I A A   U I                                    ║
-    ║                     Ultimate Engine — Version 5.0.0                              ║
+    ║                   Universal Engine — Version 6.0.0                               ║
     ║                                                                                  ║
     ║                                   By Diaa                                        ║
     ╚══════════════════════════════════════════════════════════════════════════════════╝
     
-    Paste & Run: يعمل فوراً على هواتف الأندرويد والآيفون ومنفذ Delta واستوديو روبلوكس
+    100% متوافق مع منفذ Delta وجميع هواتف الأندرويد والآيفون وروبلوكس ستوديو
+    خالٍ تماماً من أخطاء السنتاكس ويدعم إضافة الأزرار والتوجلز والقوائم بأبسط كود
+    
     Created By Diaa (2026 Edition)
 ]]
 
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
 
@@ -24,8 +24,8 @@ while not LocalPlayer do
     LocalPlayer = Players.LocalPlayer
 end
 
--- 1. كاشف الحاوية الآمنة لمنافذ الهواتف
-local function GetSafeGuiContainer(): Instance
+-- 1. كاشف الحاوية الآمنة لجميع المنفذين بدون استثناء
+local function GetSafeGuiContainer()
     local success, hui = pcall(function()
         local g = (gethui and gethui()) or (get_hidden_gui and get_hidden_gui())
         return g
@@ -54,31 +54,31 @@ end
 
 local Container = GetSafeGuiContainer()
 
-local existing = Container:FindFirstChild("DiaaUI_MasterContainer")
+-- إزالة أي نسخة قديمة لتجنب التكرار
+local existing = Container:FindFirstChild("DiaaUI_UniversalContainer")
 if existing then
     existing:Destroy()
 end
 
 local DiaaUI = {
-    Version = "5.0.0",
+    Version = "6.0.0",
     Author = "Diaa",
-    Flags = {} :: {[string]: any},
-    Connections = {} :: {[string]: RBXScriptConnection},
-    ConfigFolder = "DiaaUI_Configs",
+    Flags = {},
+    Connections = {},
     Themes = {
         Obsidian = {
             Accent = Color3.fromRGB(56, 189, 248),
-            Background = Color3.fromRGB(9, 13, 20),
-            Surface = Color3.fromRGB(16, 23, 37),
-            SurfaceHover = Color3.fromRGB(24, 34, 54),
-            Border = Color3.fromRGB(36, 50, 76),
+            Background = Color3.fromRGB(10, 14, 22),
+            Surface = Color3.fromRGB(17, 24, 39),
+            SurfaceHover = Color3.fromRGB(24, 34, 56),
+            Border = Color3.fromRGB(37, 51, 78),
             Text = Color3.fromRGB(241, 245, 249),
-            TextMuted = Color3.fromRGB(148, 163, 184),
+            TextMuted = Color3.fromRGB(148, 163, 184)
         }
     }
 }
 
-local function SpringTween(instance: Instance, duration: number, properties: {[string]: any}, easingStyle: Enum.EasingStyle?, easingDirection: Enum.EasingDirection?)
+local function SpringTween(instance, duration, properties, easingStyle, easingDirection)
     local info = TweenInfo.new(
         duration,
         easingStyle or Enum.EasingStyle.Quart,
@@ -89,13 +89,15 @@ local function SpringTween(instance: Instance, duration: number, properties: {[s
     return t
 end
 
+-- الشاشة الحاضنة الأساسية
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "DiaaUI_MasterContainer"
+ScreenGui.Name = "DiaaUI_UniversalContainer"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = Container
 
+-- نظام الإشعارات
 local ToastHolder = Instance.new("Frame")
 ToastHolder.Name = "Diaa_ToastHolder"
 ToastHolder.Size = UDim2.new(0, 310, 1, -70)
@@ -109,7 +111,7 @@ ToastList.VerticalAlignment = Enum.VerticalAlignment.Bottom
 ToastList.Padding = UDim.new(0, 8)
 ToastList.Parent = ToastHolder
 
-function DiaaUI:Notify(options: {Title: string, Content: string, Duration: number?})
+function DiaaUI:Notify(options)
     local title = options.Title or "DiaaUI"
     local content = options.Content or ""
     local duration = options.Duration or 3.5
@@ -191,14 +193,19 @@ function DiaaUI:Notify(options: {Title: string, Content: string, Duration: numbe
     end)
 end
 
+-- بناء النافذة الرئيسية
 local Window = {}
 Window.__index = Window
 
-function DiaaUI:CreateWindow(config: {Title: string, Subtitle: string?, Keybind: Enum.KeyCode?, MobileToggle: boolean?})
+function DiaaUI:CreateWindow(config)
+    config = config or {}
     local self = setmetatable({}, Window)
     local theme = DiaaUI.Themes.Obsidian
     local toggleKey = config.Keybind or Enum.KeyCode.RightControl
-    local showMobileToggle = if config.MobileToggle ~= nil then config.MobileToggle else true
+    local showMobileToggle = true
+    if config.MobileToggle ~= nil then
+        showMobileToggle = config.MobileToggle
+    end
 
     self.Theme = theme
     self.Tabs = {}
@@ -206,7 +213,10 @@ function DiaaUI:CreateWindow(config: {Title: string, Subtitle: string?, Keybind:
     self.Visible = true
 
     local cam = workspace.CurrentCamera
-    local viewport = if cam then cam.ViewportSize else Vector2.new(800, 600)
+    local viewport = Vector2.new(800, 600)
+    if cam and cam.ViewportSize then
+        viewport = cam.ViewportSize
+    end
     local winW = math.clamp(viewport.X - 26, 310, 560)
     local winH = math.clamp(viewport.Y - 36, 250, 360)
 
@@ -229,6 +239,7 @@ function DiaaUI:CreateWindow(config: {Title: string, Subtitle: string?, Keybind:
     MStroke.Parent = Main
     self.Main = Main
 
+    -- رأس النافذة
     local Header = Instance.new("Frame")
     Header.Size = UDim2.new(1, 0, 0, 48)
     Header.BackgroundColor3 = theme.Surface
@@ -268,7 +279,7 @@ function DiaaUI:CreateWindow(config: {Title: string, Subtitle: string?, Keybind:
     Subtitle.TextXAlignment = Enum.TextXAlignment.Left
     Subtitle.Parent = Header
 
-    -- شريط البحث الشامل لجميع التبويبات
+    -- شريط البحث الفوري
     local SearchBox = Instance.new("TextBox")
     SearchBox.PlaceholderText = "🔍 Search..."
     SearchBox.Text = ""
@@ -304,6 +315,7 @@ function DiaaUI:CreateWindow(config: {Title: string, Subtitle: string?, Keybind:
 
     CloseBtn.MouseButton1Click:Connect(function() self:Toggle() end)
 
+    -- سحب النافذة باللمس على شاشة الهاتف والماوس
     local isDragging = false
     local dragStart, startPos
     Header.InputBegan:Connect(function(input)
@@ -324,6 +336,7 @@ function DiaaUI:CreateWindow(config: {Title: string, Subtitle: string?, Keybind:
         end
     end)
 
+    -- الشريط الجانبي
     local Sidebar = Instance.new("ScrollingFrame")
     Sidebar.Size = UDim2.new(0, 120, 1, -56)
     Sidebar.Position = UDim2.new(0, 8, 0, 50)
@@ -361,7 +374,6 @@ function DiaaUI:CreateWindow(config: {Title: string, Subtitle: string?, Keybind:
     ContentCorner.Parent = Content
     self.Content = Content
 
-    -- فلترة فورية للعناصر
     SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
         local q = SearchBox.Text:lower()
         for _, elem in ipairs(self.AllElements) do
@@ -369,6 +381,7 @@ function DiaaUI:CreateWindow(config: {Title: string, Subtitle: string?, Keybind:
         end
     end)
 
+    -- زر الهاتف العائم (⚡)
     if showMobileToggle then
         local MobBtn = Instance.new("TextButton")
         MobBtn.Name = "DiaaMobileFAB"
@@ -440,12 +453,13 @@ function Window:Toggle()
     end
 end
 
+-- نظام التبويبات والعناصر المتعددة
 local Tab = {}
 Tab.__index = Tab
 
-function Window:CreateTab(options: {Name: string})
+function Window:CreateTab(options)
     local selfTab = setmetatable({}, Tab)
-    local name = options.Name or "Tab"
+    local name = (type(options) == "table" and options.Name) or options or "Tab"
     local theme = self.Theme
 
     local Btn = Instance.new("TextButton")
@@ -505,101 +519,13 @@ function Window:SelectTab(targetTab)
     SpringTween(targetTab.Btn, 0.2, {TextColor3 = self.Theme.Accent, BackgroundTransparency = 0.1})
 end
 
-function Tab:CreateAccordion(options: {Title: string, DefaultOpen: boolean?})
-    local title = options.Title or "Accordion"
-    local isOpen = if options.DefaultOpen ~= nil then options.DefaultOpen else false
-    local theme = self.Theme
+-- ==============================================================================
+-- دوال إضافة العناصر البسيطة جداً (سهلة الاستخدام مستقبلاً)
+-- ==============================================================================
 
-    local AccFrame = Instance.new("Frame")
-    AccFrame.Size = UDim2.new(1, 0, 0, 36)
-    AccFrame.BackgroundColor3 = theme.Background
-    AccFrame.BorderSizePixel = 0
-    AccFrame.ClipsDescendants = true
-    AccFrame.Parent = self.Scroll
-
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 6)
-    Corner.Parent = AccFrame
-
-    local HeaderBtn = Instance.new("TextButton")
-    HeaderBtn.Size = UDim2.new(1, 0, 0, 36)
-    HeaderBtn.BackgroundTransparency = 1
-    HeaderBtn.Text = "  " .. title
-    HeaderBtn.Font = Enum.Font.GothamBold
-    HeaderBtn.TextSize = 12
-    HeaderBtn.TextColor3 = theme.Text
-    HeaderBtn.TextXAlignment = Enum.TextXAlignment.Left
-    HeaderBtn.Parent = AccFrame
-
-    local Chevron = Instance.new("TextLabel")
-    Chevron.Text = if isOpen then "▾" else "▸"
-    Chevron.Font = Enum.Font.GothamBold
-    Chevron.TextSize = 13
-    Chevron.TextColor3 = theme.Accent
-    Chevron.Size = UDim2.new(0, 24, 0, 24)
-    Chevron.Position = UDim2.new(1, -30, 0.5, -12)
-    Chevron.BackgroundTransparency = 1
-    Chevron.Parent = AccFrame
-
-    local InnerContainer = Instance.new("Frame")
-    InnerContainer.Size = UDim2.new(1, 0, 0, 0)
-    InnerContainer.Position = UDim2.new(0, 0, 0, 36)
-    InnerContainer.BackgroundTransparency = 1
-    InnerContainer.AutomaticSize = Enum.AutomaticSize.Y
-    InnerContainer.Parent = AccFrame
-
-    local InLayout = Instance.new("UIListLayout")
-    InLayout.Padding = UDim.new(0, 6)
-    InLayout.Parent = InnerContainer
-
-    local InPadding = Instance.new("UIPadding")
-    InPadding.PaddingTop = UDim.new(0, 6)
-    InPadding.PaddingBottom = UDim.new(0, 6)
-    InPadding.PaddingLeft = UDim.new(0, 8)
-    InPadding.PaddingRight = UDim.new(0, 8)
-    InPadding.Parent = InnerContainer
-
-    local function ToggleAccordion()
-        isOpen = not isOpen
-        Chevron.Text = if isOpen then "▾" else "▸"
-        if isOpen then
-            AccFrame.AutomaticSize = Enum.AutomaticSize.Y
-            SpringTween(AccFrame, 0.25, {BackgroundColor3 = theme.SurfaceHover})
-        else
-            AccFrame.AutomaticSize = Enum.AutomaticSize.None
-            SpringTween(AccFrame, 0.2, {Size = UDim2.new(1, 0, 0, 36), BackgroundColor3 = theme.Background})
-        end
-    end
-
-    HeaderBtn.MouseButton1Click:Connect(ToggleAccordion)
-
-    if isOpen then AccFrame.AutomaticSize = Enum.AutomaticSize.Y end
-
-    local subTab = setmetatable({
-        Scroll = InnerContainer,
-        Theme = theme,
-        Window = self.Window
-    }, {__index = Tab})
-
-    return subTab
-end
-
-function Tab:CreateSection(title: string)
-    local Label = Instance.new("TextLabel")
-    Label.Text = title:upper()
-    Label.Font = Enum.Font.GothamBold
-    Label.TextSize = 10
-    Label.TextColor3 = self.Theme.TextMuted
-    Label.Size = UDim2.new(1, 0, 0, 20)
-    Label.BackgroundTransparency = 1
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = self.Scroll
-    return Label
-end
-
-function Tab:CreateButton(options: {Name: string, Callback: () -> ()})
-    local name = options.Name or "Button"
-    local callback = options.Callback or function() end
+-- 1. إضافة زر بكلمة واحدة
+function Tab:AddButton(name, callback)
+    callback = callback or function() end
     local theme = self.Theme
 
     local Btn = Instance.new("TextButton")
@@ -642,11 +568,12 @@ function Tab:CreateButton(options: {Name: string, Callback: () -> ()})
     table.insert(self.Window.AllElements, { Name = name, Frame = Btn })
     return Btn
 end
+Tab.CreateButton = function(self, opt) return self:AddButton(opt.Name, opt.Callback) end
 
-function Tab:CreateToggle(options: {Name: string, CurrentValue: boolean?, Flag: string?, Callback: (boolean) -> ()})
-    local name = options.Name or "Toggle"
-    local state = options.CurrentValue or false
-    local callback = options.Callback or function() end
+-- 2. إضافة توجل (مفتاح تشغيل/إيقاف)
+function Tab:AddToggle(name, defaultState, callback)
+    local state = defaultState or false
+    callback = callback or function() end
     local theme = self.Theme
 
     local Frame = Instance.new("Frame")
@@ -673,7 +600,7 @@ function Tab:CreateToggle(options: {Name: string, CurrentValue: boolean?, Flag: 
     local Switch = Instance.new("Frame")
     Switch.Size = UDim2.new(0, 38, 0, 20)
     Switch.Position = UDim2.new(1, -48, 0.5, -10)
-    Switch.BackgroundColor3 = if state then theme.Accent else theme.SurfaceHover
+    Switch.BackgroundColor3 = (state and theme.Accent) or theme.SurfaceHover
     Switch.BorderSizePixel = 0
     Switch.Parent = Frame
 
@@ -683,7 +610,7 @@ function Tab:CreateToggle(options: {Name: string, CurrentValue: boolean?, Flag: 
 
     local Knob = Instance.new("Frame")
     Knob.Size = UDim2.new(0, 14, 0, 14)
-    Knob.Position = if state then UDim2.new(1, -17, 0.5, -7) else UDim2.new(0, 3, 0.5, -7)
+    Knob.Position = (state and UDim2.new(1, -17, 0.5, -7)) or UDim2.new(0, 3, 0.5, -7)
     Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     Knob.BorderSizePixel = 0
     Knob.Parent = Switch
@@ -698,9 +625,9 @@ function Tab:CreateToggle(options: {Name: string, CurrentValue: boolean?, Flag: 
     ClickBtn.Text = ""
     ClickBtn.Parent = Frame
 
-    local function Set(val: boolean)
+    local function Set(val)
         state = val
-        if options.Flag then DiaaUI.Flags[options.Flag] = state end
+        DiaaUI.Flags[name] = state
         if state then
             SpringTween(Switch, 0.22, {BackgroundColor3 = theme.Accent})
             SpringTween(Knob, 0.22, {Position = UDim2.new(1, -17, 0.5, -7)})
@@ -712,18 +639,19 @@ function Tab:CreateToggle(options: {Name: string, CurrentValue: boolean?, Flag: 
     end
 
     ClickBtn.MouseButton1Click:Connect(function() Set(not state) end)
-    if options.Flag then DiaaUI.Flags[options.Flag] = state end
+    DiaaUI.Flags[name] = state
     table.insert(self.Window.AllElements, { Name = name, Frame = Frame })
-    return { Set = Set }
+    return { Set = Set, GetValue = function() return state end }
 end
+Tab.CreateToggle = function(self, opt) return self:AddToggle(opt.Name, opt.CurrentValue, opt.Callback) end
 
-function Tab:CreateSlider(options: {Name: string, Range: {number}, Increment: number?, CurrentValue: number?, Flag: string?, Callback: (number) -> ()})
-    local name = options.Name or "Slider"
-    local min = options.Range[1] or 0
-    local max = options.Range[2] or 100
-    local inc = options.Increment or 1
-    local current = options.CurrentValue or min
-    local callback = options.Callback or function() end
+-- 3. إضافة سلايدر (شريط تمرير أرقام)
+function Tab:AddSlider(name, min, max, defaultVal, step, callback)
+    min = min or 0
+    max = max or 100
+    step = step or 1
+    local current = defaultVal or min
+    callback = callback or function() end
     local theme = self.Theme
 
     local Frame = Instance.new("Frame")
@@ -779,13 +707,13 @@ function Tab:CreateSlider(options: {Name: string, Range: {number}, Increment: nu
     FCorner.CornerRadius = UDim.new(1, 0)
     FCorner.Parent = Fill
 
-    local function Update(posX: number)
+    local function Update(posX)
         local rel = math.clamp((posX - Track.AbsolutePosition.X) / Track.AbsoluteSize.X, 0, 1)
-        local stepped = math.clamp(math.floor((min + ((max - min) * rel)) / inc + 0.5) * inc, min, max)
+        local stepped = math.clamp(math.floor((min + ((max - min) * rel)) / step + 0.5) * step, min, max)
         current = stepped
         ValText.Text = tostring(current)
         Fill.Size = UDim2.new((current - min) / (max - min), 0, 1, 0)
-        if options.Flag then DiaaUI.Flags[options.Flag] = current end
+        DiaaUI.Flags[name] = current
         callback(current)
     end
 
@@ -807,14 +735,149 @@ function Tab:CreateSlider(options: {Name: string, Range: {number}, Increment: nu
         end
     end)
 
-    if options.Flag then DiaaUI.Flags[options.Flag] = current end
+    DiaaUI.Flags[name] = current
     table.insert(self.Window.AllElements, { Name = name, Frame = Frame })
-    return { Set = function(val: number) Update(Track.AbsolutePosition.X + (Track.AbsoluteSize.X * ((val - min) / (max - min)))) end }
+    return { Set = function(val) Update(Track.AbsolutePosition.X + (Track.AbsoluteSize.X * ((val - min) / (max - min)))) end }
 end
+Tab.CreateSlider = function(self, opt) return self:AddSlider(opt.Name, opt.Range[1], opt.Range[2], opt.CurrentValue, opt.Increment, opt.Callback) end
 
-function Tab:CreateParagraph(options: {Title: string, Content: string})
-    local pTitle = options.Title or "Note"
-    local pContent = options.Content or ""
+-- 4. إضافة قائمة منسدلة (Dropdown)
+function Tab:AddDropdown(name, optionsList, defaultOption, callback)
+    optionsList = optionsList or {"Option 1", "Option 2"}
+    local current = defaultOption or optionsList[1] or ""
+    callback = callback or function() end
+    local theme = self.Theme
+
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, 0, 0, 42)
+    Frame.BackgroundColor3 = theme.Background
+    Frame.BorderSizePixel = 0
+    Frame.Parent = self.Scroll
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Frame
+
+    local Title = Instance.new("TextLabel")
+    Title.Text = name
+    Title.Font = Enum.Font.GothamMedium
+    Title.TextSize = 12
+    Title.TextColor3 = theme.Text
+    Title.Size = UDim2.new(0.5, 0, 1, 0)
+    Title.Position = UDim2.new(0, 10, 0, 0)
+    Title.BackgroundTransparency = 1
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.Parent = Frame
+
+    local DropBtn = Instance.new("TextButton")
+    DropBtn.Text = current .. " ▾"
+    DropBtn.Font = Enum.Font.GothamSemibold
+    DropBtn.TextSize = 11
+    DropBtn.TextColor3 = theme.Accent
+    DropBtn.Size = UDim2.new(0.44, 0, 0, 26)
+    DropBtn.Position = UDim2.new(0.53, 0, 0.5, -13)
+    DropBtn.BackgroundColor3 = theme.SurfaceHover
+    DropBtn.BorderSizePixel = 0
+    DropBtn.Parent = Frame
+
+    local DCorner = Instance.new("UICorner")
+    DCorner.CornerRadius = UDim.new(0, 4)
+    DCorner.Parent = DropBtn
+
+    local idx = 1
+    DropBtn.MouseButton1Click:Connect(function()
+        idx = (idx % #optionsList) + 1
+        current = optionsList[idx]
+        DropBtn.Text = current .. " ▾"
+        DiaaUI.Flags[name] = current
+        callback(current)
+    end)
+
+    DiaaUI.Flags[name] = current
+    table.insert(self.Window.AllElements, { Name = name, Frame = Frame })
+    return { Set = function(opt) current = opt DropBtn.Text = current .. " ▾" callback(current) end }
+end
+Tab.CreateDropdown = function(self, opt) return self:AddDropdown(opt.Name, opt.Options, opt.CurrentOption, opt.Callback) end
+
+-- 5. إضافة محدد ألوان (ColorPicker)
+function Tab:AddColorPicker(name, defaultColor, callback)
+    local color = defaultColor or Color3.fromRGB(56, 189, 248)
+    callback = callback or function() end
+    local theme = self.Theme
+
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, 0, 0, 40)
+    Frame.BackgroundColor3 = theme.Background
+    Frame.BorderSizePixel = 0
+    Frame.Parent = self.Scroll
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Frame
+
+    local Title = Instance.new("TextLabel")
+    Title.Text = name
+    Title.Font = Enum.Font.GothamMedium
+    Title.TextSize = 12
+    Title.TextColor3 = theme.Text
+    Title.Size = UDim2.new(1, -60, 1, 0)
+    Title.Position = UDim2.new(0, 10, 0, 0)
+    Title.BackgroundTransparency = 1
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.Parent = Frame
+
+    local Box = Instance.new("TextButton")
+    Box.Size = UDim2.new(0, 36, 0, 22)
+    Box.Position = UDim2.new(1, -48, 0.5, -11)
+    Box.BackgroundColor3 = color
+    Box.Text = ""
+    Box.BorderSizePixel = 0
+    Box.Parent = Frame
+
+    local BCorner = Instance.new("UICorner")
+    BCorner.CornerRadius = UDim.new(0, 4)
+    BCorner.Parent = Box
+
+    local palette = {
+        Color3.fromRGB(56, 189, 248),
+        Color3.fromRGB(245, 158, 11),
+        Color3.fromRGB(16, 185, 129),
+        Color3.fromRGB(239, 68, 68),
+        Color3.fromRGB(168, 85, 247),
+        Color3.fromRGB(255, 255, 255)
+    }
+    local pIdx = 1
+    Box.MouseButton1Click:Connect(function()
+        pIdx = (pIdx % #palette) + 1
+        color = palette[pIdx]
+        Box.BackgroundColor3 = color
+        DiaaUI.Flags[name] = color
+        callback(color)
+    end)
+
+    DiaaUI.Flags[name] = color
+    table.insert(self.Window.AllElements, { Name = name, Frame = Frame })
+    return { Set = function(c) color = c Box.BackgroundColor3 = c callback(c) end }
+end
+Tab.CreateColorPicker = function(self, opt) return self:AddColorPicker(opt.Name, opt.Color, opt.Callback) end
+
+-- 6. إضافة عنوان قسم (Section)
+function Tab:AddSection(title)
+    local Label = Instance.new("TextLabel")
+    Label.Text = title:upper()
+    Label.Font = Enum.Font.GothamBold
+    Label.TextSize = 10
+    Label.TextColor3 = self.Theme.TextMuted
+    Label.Size = UDim2.new(1, 0, 0, 20)
+    Label.BackgroundTransparency = 1
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = self.Scroll
+    return Label
+end
+Tab.CreateSection = Tab.AddSection
+
+-- 7. إضافة فقرة نصية (Paragraph)
+function Tab:AddParagraph(title, content)
     local theme = self.Theme
 
     local Frame = Instance.new("Frame")
@@ -827,76 +890,36 @@ function Tab:CreateParagraph(options: {Title: string, Content: string})
     Corner.CornerRadius = UDim.new(0, 6)
     Corner.Parent = Frame
 
-    local Title = Instance.new("TextLabel")
-    Title.Text = pTitle
-    Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 11
-    Title.TextColor3 = theme.Accent
-    Title.Size = UDim2.new(1, -20, 0, 18)
-    Title.Position = UDim2.new(0, 10, 0, 6)
-    Title.BackgroundTransparency = 1
-    Title.TextXAlignment = Enum.TextXAlignment.Left
-    Title.Parent = Frame
+    local TText = Instance.new("TextLabel")
+    TText.Text = title
+    TText.Font = Enum.Font.GothamBold
+    TText.TextSize = 11
+    TText.TextColor3 = theme.Accent
+    TText.Size = UDim2.new(1, -20, 0, 18)
+    TText.Position = UDim2.new(0, 10, 0, 6)
+    TText.BackgroundTransparency = 1
+    TText.TextXAlignment = Enum.TextXAlignment.Left
+    TText.Parent = Frame
 
-    local Content = Instance.new("TextLabel")
-    Content.Text = pContent
-    Content.Font = Enum.Font.Gotham
-    Content.TextSize = 10
-    Content.TextColor3 = theme.TextMuted
-    Content.Size = UDim2.new(1, -20, 0, 24)
-    Content.Position = UDim2.new(0, 10, 0, 24)
-    Content.BackgroundTransparency = 1
-    Content.TextXAlignment = Enum.TextXAlignment.Left
-    Content.TextWrapped = true
-    Content.Parent = Frame
+    local CText = Instance.new("TextLabel")
+    CText.Text = content
+    CText.Font = Enum.Font.Gotham
+    CText.TextSize = 10
+    CText.TextColor3 = theme.TextMuted
+    CText.Size = UDim2.new(1, -20, 0, 24)
+    CText.Position = UDim2.new(0, 10, 0, 24)
+    CText.BackgroundTransparency = 1
+    CText.TextXAlignment = Enum.TextXAlignment.Left
+    CText.TextWrapped = true
+    CText.Parent = Frame
 
-    table.insert(self.Window.AllElements, { Name = pTitle, Frame = Frame })
+    table.insert(self.Window.AllElements, { Name = title, Frame = Frame })
     return Frame
 end
-
--- 5. نظام الحفظ والاسترجاع اليدوي لملفات الـ JSON
-function DiaaUI:SaveConfig(configName: string?)
-    local name = (configName or "Default") .. ".json"
-    local fullPath = DiaaUI.ConfigFolder .. "/" .. name
-    local success = pcall(function()
-        if makefolder and not isfolder(DiaaUI.ConfigFolder) then
-            makefolder(DiaaUI.ConfigFolder)
-        end
-        local encoded = HttpService:JSONEncode(DiaaUI.Flags)
-        if writefile then
-            writefile(fullPath, encoded)
-        end
-    end)
-    if success then
-        DiaaUI:Notify({ Title = "Config Saved", Content = "Saved flags to " .. name, Duration = 3 })
-    else
-        DiaaUI:Notify({ Title = "Save Warning", Content = "Stored in runtime session memory.", Duration = 3 })
-    end
-end
-
-function DiaaUI:LoadConfig(configName: string?)
-    local name = (configName or "Default") .. ".json"
-    local fullPath = DiaaUI.ConfigFolder .. "/" .. name
-    local loaded = false
-    pcall(function()
-        if isfile and isfile(fullPath) and readfile then
-            local data = readfile(fullPath)
-            local decoded = HttpService:JSONDecode(data)
-            for k, v in pairs(decoded) do
-                DiaaUI.Flags[k] = v
-            end
-            loaded = true
-        end
-    end)
-    if loaded then
-        DiaaUI:Notify({ Title = "Config Loaded", Content = "Loaded flags from " .. name, Duration = 3 })
-    else
-        DiaaUI:Notify({ Title = "Notice", Content = "No saved file found for " .. name, Duration = 3 })
-    end
-end
+Tab.CreateParagraph = function(self, opt) return self:AddParagraph(opt.Title, opt.Content) end
 
 -- ==============================================================================
--- 6. التشغيل التلقائي المباشر مع واجهة متكاملة
+-- 3. تشغيل النافذة وتجهيز التبويبات مع أمثلة سهلة يمكنك التعديل عليها
 -- ==============================================================================
 local WindowInstance = DiaaUI:CreateWindow({
     Title = "Diaa Luxury Hub",
@@ -905,195 +928,138 @@ local WindowInstance = DiaaUI:CreateWindow({
     MobileToggle = true
 })
 
-local MainTab = WindowInstance:CreateTab({ Name = "Main" })
-local MovementTab = WindowInstance:CreateTab({ Name = "Movement" })
-local VisualsTab = WindowInstance:CreateTab({ Name = "Visuals" })
-local ConfigTab = WindowInstance:CreateTab({ Name = "Settings" })
+local MainTab = WindowInstance:CreateTab("Main")
+local PlayerTab = WindowInstance:CreateTab("Player")
+local VisualsTab = WindowInstance:CreateTab("Visuals")
 
-MainTab:CreateSection("Overview & Quick Actions")
-MainTab:CreateParagraph({
-    Title = "DiaaUI v5.0 Ultimate Engine",
-    Content = "تمت البرمجة بواسطة Diaa. استخدم شريط البحث 🔍 لتصفية أي زر أو سلايدر عبر كل التبويبات!"
-})
+-- -------------------------------------------------------------
+-- تبويب Main: أمثلة على الأزرار والإشعارات
+-- -------------------------------------------------------------
+MainTab:AddSection("Overview")
 
-MainTab:CreateButton({
-    Name = "Send Notification Toast",
-    Callback = function()
-        DiaaUI:Notify({
-            Title = "By Diaa",
-            Content = "DiaaUI v5.0 يعمل الآن بسلاسة فائقة وبدون أي تقطيع!",
-            Duration = 3
-        })
+MainTab:AddParagraph("DiaaUI Universal Engine", "تمت البرمجة بواسطة Diaa. كود نظيف وسريع ويعمل 100% على هاتفك!")
+
+MainTab:AddButton("Send Notification Test", function()
+    DiaaUI:Notify({
+        Title = "By Diaa",
+        Content = "DiaaUI يعمل الآن بدون أي أخطاء سنتاكس!",
+        Duration = 3
+    })
+end)
+
+MainTab:AddToggle("Anti-AFK Protection", true, function(enabled)
+    if enabled then
+        local VirtualUser = game:GetService("VirtualUser")
+        DiaaUI.Connections["AntiAFK"] = LocalPlayer.Idled:Connect(function()
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton2(Vector2.new())
+        end)
+    else
+        if DiaaUI.Connections["AntiAFK"] then DiaaUI.Connections["AntiAFK"]:Disconnect() end
     end
-})
+end)
 
-local ProtectionAccordion = MainTab:CreateAccordion({
-    Title = "Security & Protection Settings",
-    DefaultOpen = false
-})
+-- -------------------------------------------------------------
+-- تبويب Player: أمثلة على السلايدرز والأزرار وحركة اللاعب
+-- -------------------------------------------------------------
+PlayerTab:AddSection("Movement & Character")
 
-ProtectionAccordion:CreateToggle({
-    Name = "Anti-AFK Protection",
-    CurrentValue = true,
-    Flag = "AntiAFK",
-    Callback = function(enabled)
-        if enabled then
-            local VirtualUser = game:GetService("VirtualUser")
-            DiaaUI.Connections["AntiAFK"] = LocalPlayer.Idled:Connect(function()
-                VirtualUser:CaptureController()
-                VirtualUser:ClickButton2(Vector2.new())
-            end)
-        else
-            if DiaaUI.Connections["AntiAFK"] then DiaaUI.Connections["AntiAFK"]:Disconnect() end
-        end
+PlayerTab:AddSlider("WalkSpeed Multiplier", 16, 250, 16, 1, function(val)
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChildOfClass("Humanoid") then
+        char:FindFirstChildOfClass("Humanoid").WalkSpeed = val
     end
-})
+end)
 
-MovementTab:CreateSection("Player Physics")
-
-MovementTab:CreateSlider({
-    Name = "WalkSpeed Multiplier",
-    Range = {16, 250},
-    Increment = 1,
-    CurrentValue = 16,
-    Flag = "SpeedVal",
-    Callback = function(val)
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChildOfClass("Humanoid") then
-            char:FindFirstChildOfClass("Humanoid").WalkSpeed = val
-        end
+PlayerTab:AddSlider("JumpPower Height", 50, 350, 50, 5, function(val)
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChildOfClass("Humanoid") then
+        char:FindFirstChildOfClass("Humanoid").UseJumpPower = true
+        char:FindFirstChildOfClass("Humanoid").JumpPower = val
     end
-})
+end)
 
-MovementTab:CreateSlider({
-    Name = "JumpPower Height",
-    Range = {50, 350},
-    Increment = 5,
-    CurrentValue = 50,
-    Flag = "JumpVal",
-    Callback = function(val)
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChildOfClass("Humanoid") then
-            char:FindFirstChildOfClass("Humanoid").UseJumpPower = true
-            char:FindFirstChildOfClass("Humanoid").JumpPower = val
-        end
+PlayerTab:AddToggle("Infinite Jump", false, function(enabled)
+    if enabled then
+        DiaaUI.Connections["InfJump"] = UserInputService.JumpRequest:Connect(function()
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChildOfClass("Humanoid") then
+                char:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end)
+    else
+        if DiaaUI.Connections["InfJump"] then DiaaUI.Connections["InfJump"]:Disconnect() end
     end
-})
+end)
 
-local AdvancedMovement = MovementTab:CreateAccordion({
-    Title = "Advanced Movement Modifiers",
-    DefaultOpen = false
-})
-
-AdvancedMovement:CreateToggle({
-    Name = "Infinite Jump",
-    CurrentValue = false,
-    Flag = "InfJump",
-    Callback = function(enabled)
-        if enabled then
-            DiaaUI.Connections["InfJump"] = UserInputService.JumpRequest:Connect(function()
-                local char = LocalPlayer.Character
-                if char and char:FindFirstChildOfClass("Humanoid") then
-                    char:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
-                end
-            end)
-        else
-            if DiaaUI.Connections["InfJump"] then DiaaUI.Connections["InfJump"]:Disconnect() end
-        end
-    end
-})
-
-AdvancedMovement:CreateToggle({
-    Name = "NoClip (Wall Pass)",
-    CurrentValue = false,
-    Flag = "NoClip",
-    Callback = function(enabled)
-        if enabled then
-            DiaaUI.Connections["NoClip"] = RunService.Stepped:Connect(function()
-                local char = LocalPlayer.Character
-                if char then
-                    for _, part in ipairs(char:GetDescendants()) do
-                        if part:IsA("BasePart") and part.CanCollide then
-                            part.CanCollide = false
-                        end
+PlayerTab:AddToggle("NoClip (Wall Pass)", false, function(enabled)
+    if enabled then
+        DiaaUI.Connections["NoClip"] = RunService.Stepped:Connect(function()
+            local char = LocalPlayer.Character
+            if char then
+                for _, part in ipairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") and part.CanCollide then
+                        part.CanCollide = false
                     end
                 end
-            end)
-        else
-            if DiaaUI.Connections["NoClip"] then DiaaUI.Connections["NoClip"]:Disconnect() end
-        end
-    end
-})
-
-VisualsTab:CreateSection("Lighting & ESP")
-
-VisualsTab:CreateToggle({
-    Name = "FullBright (Night Vision)",
-    CurrentValue = false,
-    Flag = "FullBright",
-    Callback = function(enabled)
-        if enabled then
-            Lighting.Brightness = 2
-            Lighting.ClockTime = 14
-            Lighting.FogEnd = 100000
-            Lighting.GlobalShadows = false
-            Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
-        else
-            Lighting.Brightness = 1
-            Lighting.GlobalShadows = true
-            Lighting.OutdoorAmbient = Color3.fromRGB(70, 70, 70)
-        end
-    end
-})
-
-VisualsTab:CreateToggle({
-    Name = "Player ESP Highlights",
-    CurrentValue = false,
-    Flag = "PlayerESP",
-    Callback = function(enabled)
-        if enabled then
-            for _, plr in ipairs(Players:GetPlayers()) do
-                if plr ~= LocalPlayer and plr.Character and not plr.Character:FindFirstChild("DiaaESP") then
-                    local hl = Instance.new("Highlight")
-                    hl.Name = "DiaaESP"
-                    hl.FillColor = Color3.fromRGB(56, 189, 248)
-                    hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-                    hl.Parent = plr.Character
-                end
             end
-        else
-            for _, plr in ipairs(Players:GetPlayers()) do
-                if plr.Character and plr.Character:FindFirstChild("DiaaESP") then
-                    plr.Character["DiaaESP"]:Destroy()
-                end
+        end)
+    else
+        if DiaaUI.Connections["NoClip"] then DiaaUI.Connections["NoClip"]:Disconnect() end
+    end
+end)
+
+-- -------------------------------------------------------------
+-- تبويب Visuals: أمثلة على القوائم المنسدلة ومحدد الألوان
+-- -------------------------------------------------------------
+VisualsTab:AddSection("Lighting & ESP")
+
+VisualsTab:AddToggle("FullBright (Night Vision)", false, function(enabled)
+    if enabled then
+        Lighting.Brightness = 2
+        Lighting.ClockTime = 14
+        Lighting.FogEnd = 100000
+        Lighting.GlobalShadows = false
+        Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+    else
+        Lighting.Brightness = 1
+        Lighting.GlobalShadows = true
+        Lighting.OutdoorAmbient = Color3.fromRGB(70, 70, 70)
+    end
+end)
+
+VisualsTab:AddToggle("Player ESP Highlights", false, function(enabled)
+    if enabled then
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character and not plr.Character:FindFirstChild("DiaaESP") then
+                local hl = Instance.new("Highlight")
+                hl.Name = "DiaaESP"
+                hl.FillColor = Color3.fromRGB(56, 189, 248)
+                hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                hl.Parent = plr.Character
+            end
+        end
+    else
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr.Character and plr.Character:FindFirstChild("DiaaESP") then
+                plr.Character["DiaaESP"]:Destroy()
             end
         end
     end
-})
+end)
 
-ConfigTab:CreateSection("Manual Config Snapshot Saving")
-ConfigTab:CreateParagraph({
-    Title = "Manual Snapshot Storage",
-    Content = "احفظ الإعدادات يدوياً أو استرجعها بنقرة زر واحدة."
-})
+VisualsTab:AddDropdown("ESP Team Filter", {"All Players", "Enemies Only", "Friends Only"}, "All Players", function(selected)
+    print("[DiaaUI] ESP Filter changed to:", selected)
+end)
 
-ConfigTab:CreateButton({
-    Name = "💾 Save Configuration Now",
-    Callback = function()
-        DiaaUI:SaveConfig("DiaaHub_Config")
-    end
-})
+VisualsTab:AddColorPicker("ESP Highlight Color", Color3.fromRGB(56, 189, 248), function(color)
+    print("[DiaaUI] Custom color selected:", color)
+end)
 
-ConfigTab:CreateButton({
-    Name = "📂 Load Saved Configuration",
-    Callback = function()
-        DiaaUI:LoadConfig("DiaaHub_Config")
-    end
-})
-
+-- إشعار البداية
 DiaaUI:Notify({
-    Title = "DiaaUI v5.0 Loaded",
-    Content = "Welcome! Running Diaa Luxury Hub By Diaa.",
+    Title = "DiaaUI v6.0 Ready",
+    Content = "Welcome to Diaa Luxury Hub By Diaa.",
     Duration = 4
 })
 
